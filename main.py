@@ -67,8 +67,13 @@ async def lock_user(req: LockUserRequest, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found")
 
     now = datetime.now(timezone.utc)
-    if user.locktime and user.locktime > now:
-        raise HTTPException(status_code=409, detail="User already locked")
+    if user.locktime:
+        locktime = user.locktime
+        if locktime.tzinfo is None:
+            locktime = locktime.replace(tzinfo=timezone.utc)
+        if locktime > now:
+            raise HTTPException(status_code=409, detail="User already locked")
+
 
     user.locktime = req.locktime
     await db.commit()
